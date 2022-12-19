@@ -8451,10 +8451,64 @@ exports["default"] = API;
 
 /***/ }),
 
-/***/ "./src/index.ts":
-/*!**********************!*\
-  !*** ./src/index.ts ***!
-  \**********************/
+/***/ "./src/DOMElements.ts":
+/*!****************************!*\
+  !*** ./src/DOMElements.ts ***!
+  \****************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.saveBtn = exports.searchBtn = exports.content = exports.modal = exports.element = void 0;
+const bootstrap_1 = __webpack_require__(/*! bootstrap */ "./node_modules/bootstrap/dist/js/bootstrap.esm.js");
+const element = document.querySelectorAll('.modal')[0];
+exports.element = element;
+const modal = new bootstrap_1.Modal(element, {
+    keyboard: true,
+    backdrop: true
+});
+exports.modal = modal;
+const content = document.querySelector('#content');
+exports.content = content;
+const searchBtn = document.querySelector('#searchBtn');
+exports.searchBtn = searchBtn;
+const saveBtn = document.querySelector('#saveBtn');
+exports.saveBtn = saveBtn;
+
+
+/***/ }),
+
+/***/ "./src/Locality.ts":
+/*!*************************!*\
+  !*** ./src/Locality.ts ***!
+  \*************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+class Locality {
+    constructor(cep, publicplace, complement, district, uf) {
+        this._cep = '';
+        this._publicplace = '';
+        this._complement = '';
+        this._district = '';
+        this._uf = '';
+        this._cep = cep;
+        this._publicplace = publicplace;
+        this._complement = complement;
+        this._district = district;
+        this._uf = uf;
+    }
+}
+exports["default"] = Locality;
+
+
+/***/ }),
+
+/***/ "./src/functions/savelocalization.ts":
+/*!*******************************************!*\
+  !*** ./src/functions/savelocalization.ts ***!
+  \*******************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -8471,50 +8525,151 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const bootstrap_1 = __webpack_require__(/*! bootstrap */ "./node_modules/bootstrap/dist/js/bootstrap.esm.js");
-const API_1 = __importDefault(__webpack_require__(/*! ./API */ "./src/API.ts"));
-const element = document.querySelectorAll('.modal')[0];
-const modal = new bootstrap_1.Modal(element, {
-    keyboard: true,
-    backdrop: true
-});
-const content = document.querySelector('#content');
-const btn = document.querySelector('#searchBtn');
-btn.addEventListener('click', () => __awaiter(void 0, void 0, void 0, function* () {
-    let cep = document.querySelector('#cepinput').value;
+const API_1 = __importDefault(__webpack_require__(/*! ../API */ "./src/API.ts"));
+const Locality_1 = __importDefault(__webpack_require__(/*! ../Locality */ "./src/Locality.ts"));
+function saveLocalization() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let savedLocalizations = [];
+        if (localStorage.getItem('savedLocalizations')) {
+            savedLocalizations = JSON.parse(localStorage.getItem('savedLocalizations'));
+        }
+        let local = yield API_1.default.getCep(document.querySelector('#cepinput').value);
+        let localExists = savedLocalizations.find(localization => localization._cep == local.cep);
+        if (!localExists) {
+            savedLocalizations.push(new Locality_1.default(local.cep, local.logradouro, local.complemento, local.distrito, local.uf));
+            localStorage.setItem('savedLocalizations', JSON.stringify(savedLocalizations));
+            alert('Localização salva!');
+        }
+        else {
+            alert('Esta localização já está salva!');
+        }
+    });
+}
+exports["default"] = saveLocalization;
+
+
+/***/ }),
+
+/***/ "./src/functions/search.ts":
+/*!*********************************!*\
+  !*** ./src/functions/search.ts ***!
+  \*********************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const API_1 = __importDefault(__webpack_require__(/*! ../API */ "./src/API.ts"));
+const DOMElements_1 = __webpack_require__(/*! ../DOMElements */ "./src/DOMElements.ts");
+const writemodal_1 = __importDefault(__webpack_require__(/*! ./writemodal */ "./src/functions/writemodal.ts"));
+const validatecep_1 = __importDefault(__webpack_require__(/*! ./validatecep */ "./src/functions/validatecep.ts"));
+function searchCep() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let cep = document.querySelector('#cepinput').value;
+        if ((0, validatecep_1.default)(cep)) {
+            let data = yield API_1.default.getCep(cep);
+            let array = Object.values(data);
+            if (array.length < 10) {
+                alert('CEP não encontrado.');
+            }
+            else {
+                for (let i = 0; i < array.length; i++) {
+                    if (!array[i])
+                        array[i] = 'Não informado';
+                }
+                (0, writemodal_1.default)(array);
+                DOMElements_1.modal.show();
+            }
+        }
+    });
+}
+exports["default"] = searchCep;
+
+
+/***/ }),
+
+/***/ "./src/functions/validatecep.ts":
+/*!**************************************!*\
+  !*** ./src/functions/validatecep.ts ***!
+  \**************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+function isValidCep(cep) {
     if (!cep) {
         alert('O campo não pode estar vazio!');
+        return false;
     }
-    else if (isNaN(parseInt(cep))) {
+    else if (isNaN(parseInt(cep)) || cep.includes('-')) {
         alert('Insira somente números!');
+        return false;
     }
     else if (cep.length != 8) {
         alert('Cep inválido!');
+        return false;
     }
     else {
-        let data = yield API_1.default.getCep(cep);
-        let array = Object.values(data);
-        if (array.length < 10) {
-            alert('CEP Inválido!');
-        }
-        else {
-            for (let i = 0; i < array.length; i++) {
-                if (!array[i])
-                    array[i] = 'Não informado';
-            }
-            content.innerHTML =
-                `
-			<p><b>CEP: </b>${array[0]}</p>
-			<p><b>Logradouro: </b>${array[1]}</p>
-			<p><b>Complemento: </b>${array[2]}</p>
-			<p><b>Bairro: </b>${array[3]}</p>
-			<p><b>Localidade: </b>${array[4]}</p>
-			<p><b>UF: </b>${array[5]}</p>
-			`;
-            modal.show();
-        }
+        return true;
     }
-}));
+}
+exports["default"] = isValidCep;
+
+
+/***/ }),
+
+/***/ "./src/functions/writemodal.ts":
+/*!*************************************!*\
+  !*** ./src/functions/writemodal.ts ***!
+  \*************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const DOMElements_1 = __webpack_require__(/*! ../DOMElements */ "./src/DOMElements.ts");
+function writemodal(array) {
+    DOMElements_1.content.innerHTML =
+        `
+		<p><b>CEP: </b>${array[0]}</p>
+		<p><b>Logradouro: </b>${array[1]}</p>
+		<p><b>Complemento: </b>${array[2]}</p>
+		<p><b>Bairro: </b>${array[3]}</p>
+		<p><b>Localidade: </b>${array[4]}</p>
+		<p><b>UF: </b>${array[5]}</p>
+	`;
+}
+exports["default"] = writemodal;
+
+
+/***/ }),
+
+/***/ "./src/index.ts":
+/*!**********************!*\
+  !*** ./src/index.ts ***!
+  \**********************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const DOMElements_1 = __webpack_require__(/*! ./DOMElements */ "./src/DOMElements.ts");
+const search_1 = __importDefault(__webpack_require__(/*! ./functions/search */ "./src/functions/search.ts"));
+const savelocalization_1 = __importDefault(__webpack_require__(/*! ./functions/savelocalization */ "./src/functions/savelocalization.ts"));
+DOMElements_1.searchBtn.addEventListener('click', search_1.default);
+DOMElements_1.saveBtn.addEventListener('click', savelocalization_1.default);
 
 
 /***/ })
